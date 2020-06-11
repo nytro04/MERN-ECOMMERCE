@@ -1,9 +1,12 @@
 const express = require("express");
 const morgan = require("morgan");
 
-/** app.use allow you to add middle to the express middleware stack
- * express.json() ## express middleware ## gives you access to data(data sent from client)
- * on the request body. eg. req.body.password
+const userRouter = require("./routes/userRoutes");
+
+/**
+ * * app.use allow you to add middle to the express middleware stack
+ * * express.json() ## express middleware ## gives you access to data(data sent from client)
+ * * non the request body. eg. req.body.password
  */
 
 // initialize express with app
@@ -16,5 +19,12 @@ app.use(express.json());
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
+
+//The routes below could be written this way
+// app.post("/api/v1/users", sigup)
+
+// * Routes Middlewares ==> talks with router middlewares in the routes folder
+
+app.use("/api/v1/users", userRouter);
 
 module.exports = app;
