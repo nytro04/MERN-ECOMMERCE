@@ -1,5 +1,7 @@
 const express = require("express");
 
+const { signup } = require("./../controller/authController");
+
 /**
  * Router
  * They are Middlewares that handles routes to specific resources eg. userRoutes, productRoutes
@@ -13,4 +15,6 @@ const router = express.Router();
  */
 
 // Sign Up or Register new User
-router.post("/signup", sigup);
+router.post("/signup", signup);
+
+module.exports = router;

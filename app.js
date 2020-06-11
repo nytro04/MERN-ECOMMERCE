@@ -3,6 +3,8 @@ const morgan = require("morgan");
 
 const userRouter = require("./routes/userRoutes");
 
+const AppError = require("./utils/appError");
+
 /**
  * * app.use allow you to add middle to the express middleware stack
  * * express.json() ## express middleware ## gives you access to data(data sent from client)
@@ -26,5 +28,11 @@ if (process.env.NODE_ENV === "development") {
 // * Routes Middlewares ==> talks with router middlewares in the routes folder
 
 app.use("/api/v1/users", userRouter);
+
+
+// * catch all unhandled routes(get, post, update, delete)
+app.all("*", (req, res, next) => {
+  next(new AppError(`Can't find ${req.originalUrl} on this server`, 404));
+});
 
 module.exports = app;
