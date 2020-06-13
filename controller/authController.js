@@ -1,6 +1,8 @@
 const jwt = require("jsonwebtoken");
-const catchAsync = require("./../utils/catchAsync");
 const User = require("./../models/userModel");
+
+const catchAsync = require("./../utils/catchAsync");
+const AppError = require("./../utils/appError");
 
 /**
  * Sign JWT => sign JWT token
@@ -56,4 +58,34 @@ exports.signup = catchAsync(async (req, res, next) => {
   });
 
   createAndSendToken(newUser, 201, res);
+});
+
+/**
+ * login registered user
+ * * sends JWT Token back
+ */
+exports.login = catchAsync(async (req, res, next) => {
+  //  * 1. Get email and password from request body
+  const { email, password } = req.body;
+
+  //  * 2. check if email and password are provided
+  if (!email) return next(new AppError("Please provide email", 400));
+  if (!password) return next(new AppError("Please provide password", 400));
+
+  //  * 3. check if user exist and password is correct
+  //  * +password adds the removed (select false in DB) password back to user document
+  const user = await User.findOne({ email }).select("+password");
+
+  // Check is provided email exist on DB
+  if (!user) return next(new AppError("Incorrect email or password"));
+
+  //  * if email exist check password
+  const correctPassword = await user.comparePasswords(password, user.password);
+
+  // * check and return error if password is not correct
+  if (!correctPassword)
+    return next(new AppError("Incorrect email or password"));
+
+  //  * Log user in and send JWT if password is correct
+  createAndSendToken(user, 200, res);
 });
