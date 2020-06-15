@@ -79,10 +79,10 @@ exports.login = catchAsync(async (req, res, next) => {
   // Check is provided email exist on DB
   if (!user) return next(new AppError("Incorrect email or password"));
 
-  //  * if email exist check password
+  //  * if email exist check if password is correct
   const correctPassword = await user.comparePasswords(password, user.password);
 
-  // * check and return error if password is not correct
+  // *  return error if password is not correct
   if (!correctPassword)
     return next(new AppError("Incorrect email or password"));
 
