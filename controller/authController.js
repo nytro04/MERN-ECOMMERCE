@@ -4,6 +4,7 @@ const User = require("./../models/userModel");
 
 const catchAsync = require("./../utils/catchAsync");
 const AppError = require("./../utils/appError");
+const sendMail = require("../utils/email");
 
 /**
  * Sign JWT => sign JWT token
@@ -138,6 +139,10 @@ exports.protect = catchAsync(async (req, res, next) => {
   next();
 });
 
+/**
+ * @desc restrict some actions to specific users
+ * @param  {array} roles
+ */
 exports.restrictTo = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
@@ -149,3 +154,61 @@ exports.restrictTo = (...roles) => {
     return next();
   };
 };
+
+exports.forgetPassword = catchAsync(async (req, res, next) => {
+  // 1. Get user by email
+  const user = await User.findOne({ email: req.body.email });
+
+  // 2. check if user exist
+  if (!user) {
+    return next(new AppError("There is no user with this email address", 404));
+  }
+
+  // 3. generate random token
+  const resetToken = user.createPasswordResetToken();
+  await user.save({ validateBeforeSave: false });
+
+  // 4. send token to user email
+  const resetURL = `${req.protocol}://${req.get(
+    "host"
+  )}/api/v1/users/resetPassword/${resetToken}`;
+
+  // message to user who forgot or lost password
+  const message = `
+  We heard that you lost your GuardSys password. Sorry about that!\n
+  But don’t worry! You can use the following link to reset your password: \n
+
+  ${resetURL} \n
+
+  Please note that the link valid for 24 hours. \n
+
+  Please ignore this message if you did not forget your password. \n
+
+  Thanks\n
+  Team at CommerceWorld
+  `;
+
+  try {
+    await sendMail({
+      email: user.email,
+      subject: "Password reset Instructions",
+      message,
+    });
+
+    res.status(200).json({
+      status: "success",
+      message: "Token sent to email",
+    });
+  } catch (err) {
+    user.createPasswordResetToken = undefined;
+    user.createPasswordResetExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    return next(
+      new AppError(
+        "There was an error sending reset email, Please try again",
+        500
+      )
+    );
+  }
+});
