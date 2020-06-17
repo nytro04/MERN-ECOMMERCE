@@ -1,3 +1,4 @@
+const { promisify } = require("util");
 const jwt = require("jsonwebtoken");
 const User = require("./../models/userModel");
 
@@ -62,7 +63,7 @@ exports.signup = catchAsync(async (req, res, next) => {
 
 /**
  * login registered user
- * * sends JWT Token back
+ * @desc sends JWT Token back
  */
 exports.login = catchAsync(async (req, res, next) => {
   //  * 1. Get email and password from request body
@@ -88,4 +89,51 @@ exports.login = catchAsync(async (req, res, next) => {
 
   //  * Log user in and send JWT if password is correct
   createAndSendToken(user, 200, res);
+});
+
+/**
+ * @desc allows only logged in users to access specified routes
+ * @returns authenticated and authorize users
+ */
+exports.protect = catchAsync(async (req, res, next) => {
+  let token;
+
+  // 1. Check if token exist
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+
+  // if logged in
+  if (!token) {
+    return next(new AppError("You are not logged in!, Please log in", 401)); // frontend should show message and redirect after some few seconds
+  }
+
+  // 2. Verify token
+  const decodedPayload = await promisify(jwt.verify)(
+    token,
+    process.env.JWT_SECRET
+  );
+
+  // 3. check if user still exist on DB
+  const currentUser = await User.findById(decodedPayload.id);
+
+  if (!currentUser) {
+    return next(
+      new AppError("The user who owns this token no longer exist", 401)
+    ); // frontend should show message and redirect to login after some few seconds
+  }
+
+  //4. Check if user changed password after token was issued
+  if (currentUser.changedPasswordAfterTokenIssued(decodedPayload.iat)) {
+    return next("User recently changed password, Please log in again", 401); // frontend should show message and redirect to login after some few seconds
+  }
+
+  // 5. add user to req
+  req.user = currentUser;
+
+  // Grant access to protected routes
+  next();
 });
