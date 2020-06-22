@@ -242,3 +242,23 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
   // 4. Log the user in and send JWT
   createAndSendToken(user, 200, res);
 });
+
+// User password update
+
+exports.updatePassword = catchAsync(async (req, res, next) => {
+  // 1. Get user by id from User collection
+  const user = await User.findById(req.user.id).select("+password");
+
+  // 2. check if provided password is correct
+  if (!(await user.comparePasswords(req.body.currentPassword, user.password))) {
+    return next(new AppError("You provided a wrong password", 401));
+  }
+
+  // 3. if provide password is correct, Update password
+  user.password = req.body.password;
+  user.passwordConfirm = req.body.passwordConfirm;
+  await user.save(); // NOTE: User.findByIdAndUpdate will NOT work as intended *** DO NOT USE IT
+
+  // 4. Log User in and send JWT
+  createAndSendToken(user, 200, res);
+});
