@@ -4,6 +4,7 @@ const morgan = require("morgan");
 const userRouter = require("./routes/userRoutes");
 
 const AppError = require("./utils/appError");
+const globalErrorHandler = require("./controller/errorController"); // error Controller
 
 /**
  * * app.use allow you to add middle to the express middleware stack
@@ -29,10 +30,12 @@ if (process.env.NODE_ENV === "development") {
 
 app.use("/api/v1/users", userRouter);
 
-
 // * catch all unhandled routes(get, post, update, delete)
 app.all("*", (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server`, 404));
 });
+
+// Global error handler
+app.use(globalErrorHandler);
 
 module.exports = app;
