@@ -20,6 +20,6 @@
     "morgan": "^1.10.0",
     "nodemailer": "^6.4.10",
     "safe-buffer": "^5.2.1",
-    "validator": "^13.1.0"
+    "validator": "^13.7.0"
   }
 }
